@@ -1,0 +1,102 @@
+---
+title: "Homework3_VisualisationProject"
+author: "Ahmed Elsaeyed"
+date: "1/22/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Pulling in the data from my github
+
+```{r}
+#library(RCurl)
+#my_git_url <- getURL("https://raw.githubusercontent.com/aelsaeyed/BridgeR/main/datasets/hw2/HealthInsurance.csv")
+#hinsurance_csv <- read.csv(text = my_git_url, quote = "")
+
+flights <- read.csv("/Users/aelsaeyed/BridgeR/datasets/hw3/flights.csv", quote = "" )
+airports <- read.csv("/Users/aelsaeyed/BridgeR/datasets/hw3/airports.csv", quote = "")
+```
+
+### Data Exploration
+
+The set contains data pertaining to arrival times and delays, so I wanted to rank the carriers by efficiency. I thought there were two ways to do this- to look at the amount of time the delays took, and also the number of flights that were delayed. From an initial glance, it looks like the carrier F9 has both the longest average delay, and also the most frequent delays. Further research could go into exploring if there are any other factors that affect the delay time or frequency, such as time of year/day or destination airport. I derive a percentage column by dividing the number of delayed flights by the number of total flights per carrier.     
+```{r}
+library(dplyr)
+library(tidyr)
+flights_summ = summary(flights)
+flights_summ
+
+#airports_summ = summary(airports)
+#airports_summ
+
+#Average departure delay from JFK 
+mean_dep_delay= mean(flights$X.dep_delay., na.rm=TRUE)
+mean_dep_delay
+
+#Average departure by carrier (group by carrier and mean dep_delay)
+delays_by_carrier = flights %>% 
+  group_by(X.carrier.) %>% 
+  summarize(avg_delay=mean(X.dep_delay., na.rm=TRUE)) %>%
+  arrange(desc(avg_delay))
+delays_by_carrier
+
+#Carrier with the most number of delays > 5 minutes 
+frequency_of_delays = flights %>%
+  group_by(X.carrier.) %>% 
+  summarize(total_flights = n(), num_delays = sum(X.dep_delay.>= 5, na.rm=TRUE), percent_delays = (num_delays/total_flights)  * 100) %>%
+  arrange(desc(percent_delays))
+sum
+frequency_of_delays
+```
+
+### Question 2
+
+I decided to cut down the data to something more manageable by removing the columns I wouldn't be using, such as tailnum, flight ID, airtime, and distance. I also fixed up the column names to remove the annoying X., and used subset to get the top 5 flights with the largest departure delay. 
+```{r}
+#insurance_subset = subset(hinsurance_csv, hinsurance_csv$X.age > 35 & hinsurance_csv$X.family >= 2)
+#insurance_new_cols = insurance_subset[, c("X.age.", "X.family.", "X.ethnicity.", "X.region.")]
+#summary(insurance_new_cols)
+
+flights_new_columns = flights[, c("X.month.", "X.day.", "X.dep_delay.", "X.arr_delay.", "X.air_time.", "X.carrier.", "X.dest.", "X.hour.", "X.minute.")]
+names(flights_new_columns) <- c('month', 'day', 'dep_delay', 'arr_delay', 'air_time', 'carrier', 'dest', 'hour', 'minute')
+flights_new_columns
+
+delays_by_carrier
+latest_flights = as.list(delays_by_carrier$X.carrier. [1:5])
+latest_flights
+
+flights_subset = subset(flights_new_columns, flights_new_columns$carrier %in% latest_flights)
+flights_subset
+```
+
+### Question 3
+
+I'm doing a little bit of data wrangling to group the data by number of days, and getting the number of flights per day and comparing that to how many of those were late per day (using arrival this time). I'm displaying this as a histogram to very quickly see visually if a pattern arises across the year. I also focused on the carrier with the most and longest delays, "F9".  
+```{r}
+delays_subset = subset(flights_subset, flights_subset$carrier == '"F9"' & flights_subset$arr_delay >=10 & flights_subset$arr_delay <=40)
+
+
+scatter = plot(delays_subset$arr_delay, delays_subset$air_time)
+scatter
+
+histo = hist(delays_subset$hour, las=2)
+histo
+
+histo2 = hist(delays_subset$month, las=2)
+histo2
+
+box = boxplot(delays_subset$dep_delay)
+box
+
+box2 = boxplot(delays_subset$arr_delay)
+box2
+```
+
+### Question 4
+
+My question originally was whether or not the time of departure made a difference with regards to the arrival lateness. The first histogram above shows that to some degree, flights that are later in the day, after 8pm, tended to be later than those earlier in the day. The second histogram shows that flights in January tend to arrive later than flights during the rest of the year, and by a lot. For the scatter plot I graphed air time against arrival delay to see if they would correlate in any way and it's not very conclusive. 
+
+
